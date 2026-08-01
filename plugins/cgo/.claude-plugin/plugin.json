@@ -1,0 +1,25 @@
+{
+  "name": "cgo",
+  "displayName": "Claude GPT Orchestrator (CGO)",
+  "version": "0.1.0",
+  "description": "A thin Claude Code harness that detects specialist work in normal conversation and dispatches it to GPT through the official Codex plugin.",
+  "author": {
+    "name": "CGO Contributors"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "gpt",
+    "orchestration",
+    "routing",
+    "observability"
+  ],
+  "dependencies": [
+    {
+      "name": "codex",
+      "marketplace": "openai-codex"
+    }
+  ],
+  "mcpServers": "./.mcp.json"
+}

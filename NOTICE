@@ -1,0 +1,9 @@
+Claude GPT Orchestrator (CGO)
+Copyright 2026 CGO Contributors
+
+This product includes no vendored code from the official OpenAI codex-plugin-cc.
+That plugin is an external runtime dependency and has its own license and notices.
+
+Claude, Claude Code, Anthropic, Codex, GPT, and OpenAI are names or trademarks
+of their respective owners. This independent project is not affiliated with,
+endorsed by, or sponsored by Anthropic or OpenAI.

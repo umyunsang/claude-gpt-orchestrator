@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "claude-gpt-orchestrator-marketplace",
+  "owner": {
+    "name": "CGO Contributors"
+  },
+  "metadata": {
+    "description": "Claude-led planning with automatic GPT specialist dispatch through the official Codex plugin.",
+    "version": "0.1.0"
+  },
+  "allowCrossMarketplaceDependenciesOn": [
+    "openai-codex"
+  ],
+  "plugins": [
+    {
+      "name": "cgo",
+      "description": "Claude leads. GPT executes. CGO keeps the work observable.",
+      "version": "0.1.0",
+      "author": {
+        "name": "CGO Contributors"
+      },
+      "source": "./plugins/cgo"
+    }
+  ]
+}

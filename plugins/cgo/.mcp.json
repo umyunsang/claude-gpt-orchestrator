@@ -1,0 +1,12 @@
+{
+  "cgo": {
+    "command": "node",
+    "args": [
+      "${CLAUDE_PLUGIN_ROOT}/server/server.mjs"
+    ],
+    "env": {
+      "CGO_PROJECT_DIR": "${CLAUDE_PROJECT_DIR}",
+      "CGO_PLUGIN_DATA": "${CLAUDE_PLUGIN_DATA}"
+    }
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "description": "Detect specialist work in normal Claude Code prompts and inject the CGO contract.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cgo-router.mjs\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}
