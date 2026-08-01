@@ -4,6 +4,13 @@ All notable changes follow Keep a Changelog principles.
 
 ## Unreleased
 
+### Documentation
+
+- Replaced the internal positioning memo and development-oriented README content with production-facing installation and operations documentation.
+- Added a production deployment runbook covering preflight, installation, smoke tests, monitoring, updates, rollback, data retention, and troubleshooting.
+- Documented that read-only mutation policy is not project-root read isolation and that interactive doctor approval may be required.
+- Reworked the README around a scan-first value proposition, immediate quick start, route examples, trust signals, and an evidence-bounded token-economics message.
+
 ## 0.2.0 - 2026-08-02
 
 ### Added

@@ -24,7 +24,8 @@ Tests use a fake local Codex companion and must not require credentials or a liv
 - Never add a model, effort, write, cwd, executable, resume, background, or credential override to public tool arguments.
 - Keep review, research, and QA read-only.
 - Preserve unrelated user files and avoid global configuration mutation.
-- Separate universal claims from dated benchmarks and workload hypotheses.
+- Keep public documentation operational, evidence-bounded, and free of internal planning notes.
+- Update `DEPLOYMENT.md` when installation, permissions, storage, updates, or rollback behavior changes.
 - Update CHANGELOG.md for user-visible behavior.
 
 Use focused commits and describe the exact verification scope in pull requests.

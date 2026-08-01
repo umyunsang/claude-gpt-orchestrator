@@ -56,10 +56,12 @@ test("public package includes required legal and maintainer documents", () => {
     "NOTICE",
     "SECURITY.md",
     "CONTRIBUTING.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "DEPLOYMENT.md"
   ]) {
     assert.ok(fs.existsSync(file), `${file} is required`);
   }
+  assert.equal(fs.existsSync("POSITIONING.md"), false, "internal positioning memo must not ship");
   assert.match(fs.readFileSync("LICENSE", "utf8"), /Apache License/);
   assert.match(fs.readFileSync("README.md", "utf8"), /not affiliated/i);
   assert.match(fs.readFileSync("README.md", "utf8"), /may require.*subscription|subscription.*may require/i);
@@ -81,4 +83,37 @@ test("public documentation states the v2 language, privacy, and proof boundaries
   assert.match(security, /full.*prompt|prompt.*full/i);
   assert.match(security, /50.*jobs|jobs.*50/i);
   assert.match(changelog, /## 0\.2\.0 - 2026-08-02/);
+});
+
+test("public documentation is production-facing and operationally complete", () => {
+  const readme = fs.readFileSync("README.md", "utf8");
+  const deployment = fs.readFileSync("DEPLOYMENT.md", "utf8");
+
+  for (const internalPhrase of [
+    /RouterBench/i,
+    /gold records/i,
+    /product thesis/i,
+    /approved model evaluation/i,
+    /locally observed evidence/i
+  ]) {
+    assert.doesNotMatch(readme, internalPhrase);
+    assert.doesNotMatch(deployment, internalPhrase);
+  }
+
+  assert.match(readme, /automatic routing/i);
+  assert.match(readme, /restart Claude Code/i);
+  assert.match(readme, /production deployment/i);
+  assert.match(readme, /actions\/workflows\/ci\.yml\/badge\.svg/);
+  assert.match(readme, /img\.shields\.io\/github\/stars/);
+  assert.match(readme, /star (CGO|the repository)/i);
+  assert.ok(
+    readme.indexOf("## Quick start") > 0 && readme.indexOf("## Quick start") < 3500,
+    "Quick start must remain visible near the top of the README"
+  );
+  assert.match(deployment, /pre-deployment/i);
+  assert.match(deployment, /post-deployment/i);
+  assert.match(deployment, /rollback/i);
+  assert.match(deployment, /read-only.*not.*read isolation/i);
+  assert.match(deployment, /UNKNOWN_UNTIL_INSTRUMENTED/);
+  assert.match(deployment, /--keep-data/);
 });

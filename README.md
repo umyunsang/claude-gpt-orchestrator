@@ -1,61 +1,114 @@
-# Claude GPT Orchestrator (CGO)
+<div align="center">
 
-> Claude leads. GPT executes. CGO keeps the work observable.
+# CGO
 
-CGO is a thin harness for Claude Code. Keep the Claude model you want through the normal `/model` command. The current Claude conversation owns reasoning, architecture, planning, orchestration, reconciliation, observability, accountability, and the final answer. Clear, substantive implementation, deep research, web research, review, and QA phases can be dispatched to GPT-5.6 Sol through OpenAI's official Codex plugin.
+**Keep Claude Code's harness. Put every model where it delivers the most value.**
 
-Version 0.2.0 replaces the Korean/English keyword mapper with one fixed `CGO_ROUTING_V2` envelope. The hook performs structural checks only; the current Claude model classifies meaning in the same request. There is no language allow-list, translation dictionary, or extra classifier model call. This design broadens script and language reach, but it does not guarantee identical accuracy across languages or workloads.
+Opus or Fable reasons, designs, plans, and orchestrates. GPT-5.6 Sol handles token-intensive implementation, deep research, web research, review, and QA—with every handoff observable.
 
-## Marketplace status
+[![CI status](https://github.com/umyunsang/claude-gpt-orchestrator/actions/workflows/ci.yml/badge.svg)](https://github.com/umyunsang/claude-gpt-orchestrator/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/umyunsang/claude-gpt-orchestrator?display_name=tag)](https://github.com/umyunsang/claude-gpt-orchestrator/releases/latest)
+[![Apache-2.0 license](https://img.shields.io/github/license/umyunsang/claude-gpt-orchestrator)](LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/umyunsang/claude-gpt-orchestrator?style=social)](https://github.com/umyunsang/claude-gpt-orchestrator)
 
-This repository is a public custom Claude Code marketplace. Its root `.claude-plugin/marketplace.json` registers the `cgo` plugin, so no package-registry upload is required. This does not automatically place CGO in an Anthropic-managed curated catalog.
+[Quick start](#quick-start) · [Why CGO](#why-cgo) · [How it routes](#how-it-routes) · [Production deployment](DEPLOYMENT.md) · [Security](SECURITY.md)
 
-## Install and apply CGO
+</div>
 
-### Requirements
+CGO preserves the native Claude Code harness and keeps your selected Claude `/model` in charge of reasoning, architecture, planning, orchestration, reconciliation, and the final response. Clear, token-intensive execution phases are delegated to GPT-5.6 Sol through the official Codex plugin without leaving the Claude Code conversation.
 
-- Claude Code with plugin marketplace and MCP support
-- Node.js 20 or newer
-- A working Codex login or account entitlement for GPT-5.6 Sol
+Keep premium reasoning focused. Scale execution without losing accountability.
 
-The CGO source is free and open source. Claude, Codex, GPT access, subscriptions, API usage, or quota may require paid plans.
+No proxy. No second interface. No manual prompt shuttling.
 
-### Install the official Codex dependency
+## Quick start
 
-Run inside Claude Code:
-
-~~~text
-/plugin marketplace add openai/codex-plugin-cc
-/plugin install codex@openai-codex
-~~~
-
-CGO keeps the official Codex plugin external and does not vendor or fork it.
-
-### Install CGO
+### 1. Install the official Codex plugin
 
 ~~~text
-/plugin marketplace add umyunsang/claude-gpt-orchestrator
-/plugin install cgo@claude-gpt-orchestrator-marketplace
+claude plugin marketplace add openai/codex-plugin-cc
+claude plugin install codex@openai-codex
 ~~~
 
-Start a new Claude Code session so the hook and MCP server are loaded. Verify without calling a model:
+### 2. Install CGO
+
+~~~text
+claude plugin marketplace add umyunsang/claude-gpt-orchestrator
+claude plugin install cgo@claude-gpt-orchestrator-marketplace
+~~~
+
+### 3. Restart and verify
+
+Restart Claude Code so the new hook and MCP server load, then confirm both plugins are enabled:
+
+~~~text
+claude plugin list --json
+~~~
+
+Start a new interactive Claude Code session and run:
 
 ~~~text
 /cgo:doctor
 ~~~
 
-### Use Claude Code normally
+Approve the read-only doctor tool if prompted. Doctor verifies CGO, the current project, Node.js, and official Codex plugin compatibility. It does not create a Codex specialist job, although the Claude turn may consume Claude usage.
 
-No CGO command or manual GPT switch is required. Example requests:
+## Why CGO
 
-- `Design the authentication flow, then implement the approved design.`
-- `Search the official documentation, then synthesize the evidence and limitations.`
-- `Review this change without modifying files.`
-- `Run regression QA and report exactly what passed.`
+| Preserve the harness | Focus Claude on judgment | Scale execution visibly |
+| --- | --- | --- |
+| Keep Claude Code's native tools, project context, permissions, and workflow. | Let Opus or Fable own high-leverage reasoning, design, planning, sequencing, and reconciliation. | Dispatch token-heavy implementation, research, review, and QA to GPT-5.6 Sol with exact job IDs, bounded permissions, status, results, and receipts. |
 
-Simple explanation, translation, formatting, planning, design, and small routine work stay in Claude. A request is clarified once only when missing information changes the specialist role or permission path. Ambiguous, conflicting, or out-of-scope requests do not dispatch. A clear multi-role request is executed in dependency order and is not treated as ambiguity.
+The operating idea is simple: use Claude where judgment and system ownership compound; use GPT-5.6 Sol where execution volume grows. CGO is a thin, local policy and observability layer. It does not replace Claude Code, proxy its API, or operate a hosted service.
 
-Optional observability commands:
+CGO is designed to improve token economics, not to promise a fixed cost reduction. Actual usage, price, availability, and output quality depend on the selected models, accounts, prompts, and workloads.
+
+> If CGO makes your Claude Code workflow more useful, please **star the repository**. It helps other developers discover the project.
+
+## How it routes
+
+Use Claude Code normally. Automatic routing applies to ordinary non-slash prompts; no CGO command or manual model switch is required.
+
+| Request | Default behavior |
+| --- | --- |
+| `Explain this function in plain language.` | Claude answers directly. |
+| `Design the authentication flow, then implement it.` | Claude designs and orchestrates; GPT handles the explicit implementation phase. |
+| `Search the official documentation, then synthesize the evidence.` | GPT performs bounded web research; Claude reconciles and presents the answer. |
+| `Review this patch without modifying files.` | GPT performs a read-only review; Claude owns the final response. |
+| `Run regression QA and report exactly what passed.` | GPT runs a read-only QA phase with an observable job receipt. |
+
+Simple explanation, translation, formatting, planning, design, and small routine work stay in Claude. Clear specialist phases dispatch automatically. If missing information changes the specialist role or permission path, Claude should clarify once before dispatch. Ambiguous, conflicting, or unsupported requests do not launch a specialist.
+
+CGO uses current-Claude semantic classification with no language allow-list or translation dictionary. Prompts can be written in any language supported by the active Claude model, but this does not guarantee identical accuracy across languages, models, or workloads.
+
+Prompts beginning with `/` bypass automatic routing so native Claude Code and plugin commands retain their normal behavior.
+
+## Requirements
+
+- Claude Code with plugin marketplace and MCP support
+- Node.js 20 or newer
+- Official `codex@openai-codex` plugin version 1.0.6 or a compatible later 1.x release
+- Working Claude and Codex account configurations
+
+CGO is free and open source. Claude, Codex, GPT access, subscriptions, API usage, or quota may require a paid plan or subscription.
+
+## Roles and permissions
+
+| Role | Requested model | Effort | Mutation policy |
+| --- | --- | --- | --- |
+| `IMPLEMENTATION` | `gpt-5.6-sol` | `xhigh` | Current project, only when the user explicitly requests changes |
+| `DEEP_RESEARCH` | `gpt-5.6-sol` | `high` | Read-only |
+| `WEB_RESEARCH` | `gpt-5.6-sol` | `high` | Read-only |
+| `REVIEW` | `gpt-5.6-sol` | `high` | Read-only |
+| `QA` | `gpt-5.6-sol` | `high` | Read-only |
+
+Only `IMPLEMENTATION` with explicit write intent can receive workspace-write permission. Research, review, and QA remain read-only. Conflicting write instructions are rejected before a Codex job is created.
+
+CGO fixes the requested model, effort, project directory, fresh-thread mode, background execution, and mutation policy. These values cannot be replaced with user-supplied MCP overrides.
+
+## Observe specialist jobs
+
+CGO uses tracked background jobs so long specialist work is not held inside one foreground shell call.
 
 ~~~text
 /cgo:status
@@ -63,90 +116,62 @@ Optional observability commands:
 /cgo:result task-example-id
 ~~~
 
-Update an installed copy from a terminal, then restart Claude Code:
+Use the complete job ID returned by dispatch. Result retrieval verifies that the returned job identities exactly match the requested ID. The prompt stored in the local job record is redacted from the result tool response.
+
+## Production operation
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for pre-deployment checks, smoke tests, updates, rollback, incident handling, and a production deployment record.
+
+To update both plugins:
 
 ~~~text
+claude plugin marketplace update openai-codex
+claude plugin update codex@openai-codex
+
 claude plugin marketplace update claude-gpt-orchestrator-marketplace
 claude plugin update cgo@claude-gpt-orchestrator-marketplace
 ~~~
 
-## Responsibility and policy
+Restart Claude Code and run `/cgo:doctor` after updating.
 
-| Owner | Responsibilities |
-| --- | --- |
-| Current Claude Code `/model` | Main reasoning, clarification, architecture, planning, orchestration, reconciliation, observability, final communication, accountability |
-| GPT-5.6 Sol via the official Codex plugin | Bounded implementation, deep research, web research, review, and QA |
-| CGO | Fixed semantic-routing context, deterministic policy enforcement, background dispatch, and observable status/result access |
+## Local data and security
 
-| Role | Model | Effort | Mutation |
-| --- | --- | --- | --- |
-| IMPLEMENTATION | gpt-5.6-sol | xhigh | Approved current-project scope only |
-| DEEP_RESEARCH | gpt-5.6-sol | high | Read-only |
-| WEB_RESEARCH | gpt-5.6-sol | high | Read-only |
-| REVIEW | gpt-5.6-sol | high | Read-only |
-| QA | gpt-5.6-sol | high | Read-only |
+CGO uses Claude Code's dedicated plugin-data directory and enforces a current-user-owned, non-symbolic-link root with mode `0700`. Doctor reports the resolved path for the active installation.
 
-CGO separates role classification from mutation intent. Only `IMPLEMENTATION + EXPLICIT` may receive `--write`. Read-only roles require `ABSENT`; conflicting intent never launches the companion. The MCP server requires all eight routing fields and rejects model, effort, mutation, cwd, executable, resume, background, provider, credential, and timeout overrides.
+Tracked background execution requires the official Codex companion to persist the full specialist prompt and job request locally. Official companion 1.0.6 retains up to the latest 50 jobs and prunes older job files and logs as new state is saved. CGO does not expose a secure purge command. Treat the plugin-data directory as sensitive and include it in local device and backup policies.
 
-## How routing works
+Read-only prevents CGO from granting workspace-write permission; it is not project-root read isolation. Claude Code, Codex, project instructions, global instructions, and installed tooling may read files outside the current project. Run CGO only under a trusted local account and review instruction files before handling sensitive repositories.
+
+CGO does not bundle or manage credentials. The official Codex companion must resolve from the installed `openai-codex` marketplace cache. See [SECURITY.md](SECURITY.md) for the complete security and retention boundary.
+
+## Compatibility and limitations
+
+- CGO records the requested `gpt-5.6-sol` route, but the current official receipt does not attest the effective provider-side model identity. It remains `UNKNOWN_UNTIL_INSTRUMENTED`.
+- Cancellation, automatic resume, automatic orphan repair, and server-enforced cross-call workflow ordering are not available in 0.2.0.
+- A queued or running job whose process no longer exists may be reported as `orphaned`; CGO does not restart or rewrite that job.
+- CGO is compatible with official Codex plugin 1.x releases from 1.0.6, subject to contract verification by `/cgo:doctor`.
+- This repository is a public custom Claude Code marketplace. It is not an Anthropic-managed curated marketplace.
+
+## Uninstall
+
+Preserve retained job data while removing CGO:
 
 ~~~text
-normal non-slash Claude Code prompt
-        |
-        v
-fixed CGO_ROUTING_V2 context
-        |
-        v
-current Claude /model semantic decision
-        |
-        +-- simple / ambiguous / OOS --> Claude or one clarification
-        |
-        +-- clear specialist phase ----> validated CGO dispatch
-                                             |
-                                             v
-                                  official codex@openai-codex
-                                             |
-                                             v
-                                       GPT-5.6 Sol
-                                             |
-                                             v
-                                  exact status/result -> Claude
+claude plugin uninstall cgo@claude-gpt-orchestrator-marketplace --scope user --keep-data
+claude plugin marketplace remove claude-gpt-orchestrator-marketplace --scope user
 ~~~
 
-Prompts whose trimmed form begins with `/` bypass the hook so native and plugin commands retain their normal behavior. Deterministic tests prove the envelope and policy, not live semantic accuracy. The public RouterBench development fixture supplies multilingual, code-switch, ambiguity, near-OOS, multi-role, and false-write gold records for later approved evaluation.
+The official Codex plugin remains installed and can continue to be used independently.
 
-## Background lifecycle and observability
+## Support and contributing
 
-Dispatch uses the official `task --background --fresh --json` path and returns the official queued job ID without holding one shell or MCP call open for the entire specialist turn. Claude polls that exact ID with short status calls and retrieves the result after terminal status.
+- Read the [production runbook](DEPLOYMENT.md) for setup and operational issues.
+- Read the [security policy](SECURITY.md) before reporting sensitive findings.
+- Open a GitHub issue for reproducible non-sensitive bugs or feature requests.
+- See [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a pull request.
 
-Official single-job and all-job JSON shapes are validated separately. If a queued or running record has a PID that no longer exists, CGO adds an `effectiveStatus: orphaned` observation without rewriting official state. This detects the visible consequence of a worker-start race; it does not repair or restart the official job. Cancellation and automatic resume are not exposed.
+## License and trademarks
 
-Receipts prove the validated request, enforced policy, official job ID, and observed execution fields. Exact result retrieval requires both returned job identities to equal the requested full ID. The persisted specialist prompt is redacted from the result tool response so it is not duplicated into the Claude transcript. Receipts do not provide provider-attested effective model identity, so that field remains `UNKNOWN_UNTIL_INSTRUMENTED`.
-
-## Local data, security, and retention
-
-Tracked background execution requires the official companion to persist the full specialist prompt and request locally until the worker and result flow can use it. CGO resolves a dedicated plugin-data directory, rejects a symbolic-link root or a root owned by another user, and enforces mode `0700` on that directory before companion discovery or execution. This prevents other local accounts from traversing the stored job data under normal filesystem permissions.
-
-The official companion 1.0.6 retains up to the latest 50 jobs in its state and prunes older job files and associated logs as newer jobs are added. CGO does not currently expose a purge command. Treat the local data directory as sensitive, especially on shared systems, and see [SECURITY.md](SECURITY.md) for the exact boundary.
-
-No credentials are bundled or accepted through CGO arguments. The companion must resolve through the installed `codex@openai-codex` registry entry and realpath inside the official OpenAI marketplace cache. Specialist prompts are passed as argv without a shell.
-
-## Why CGO
-
-CGO is built around a cost/performance thesis: spend Claude's main-context budget on high-leverage understanding, design, coordination, acceptance, and accountability; move token-heavy specialist execution to GPT-5.6 Sol while keeping one Claude Code conversation and a receipt trail.
-
-Claude can perform every specialist role itself. CGO does not claim that one model universally wins. Price, quota, latency, and quality vary by account, date, and workload; validate the split on representative tasks.
-
-## Current limitations
-
-- Language-agnostic means no language allow-list, not universal or equal accuracy.
-- Live RouterBench accuracy and false-write statistics require a separate approved model evaluation.
-- Cancellation, automatic resume, and server-enforced cross-call workflow ordering are not exposed.
-- CGO is contract-tested against official `codex@openai-codex` 1.0.6. Later compatible 1.x versions still require contract verification.
-- Effective provider/model identity is not attested by the current official receipt.
-
-## License and names
-
-CGO is licensed under Apache-2.0. The official OpenAI plugin is an external dependency and is not vendored.
+CGO is licensed under [Apache-2.0](LICENSE). The official OpenAI Codex plugin is an external dependency and is not vendored.
 
 This independent project is not affiliated with, endorsed by, or sponsored by Anthropic or OpenAI. Claude, Claude Code, Codex, GPT, OpenAI, and Anthropic may be trademarks of their respective owners.

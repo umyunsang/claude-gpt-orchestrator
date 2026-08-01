@@ -27,6 +27,8 @@ Security invariants:
 - persisted `storedJob.request.prompt` content is redacted from CGO result tool responses;
 - doctor performs no model call.
 
+Read-only roles prevent CGO from granting workspace-write permission. They do not provide project-root read isolation. Claude Code, Codex, global and project instructions, and installed tooling may read outside the current project. Use CGO only from a trusted local account and review instruction files before operating on sensitive repositories.
+
 ## Local prompt persistence and retention
 
 The official background worker stores the full specialist prompt as part of its local task request. The request can appear in both the per-job JSON file and retained state so the detached worker and later result flow can continue after dispatch returns. CGO removes that prompt field from result tool responses; this output redaction does not erase the official local record.
