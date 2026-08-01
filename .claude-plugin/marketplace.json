@@ -4,9 +4,9 @@
   "owner": {
     "name": "CGO Contributors"
   },
+  "version": "0.2.0",
   "metadata": {
-    "description": "Claude-led planning with automatic GPT specialist dispatch through the official Codex plugin.",
-    "version": "0.1.0"
+    "description": "Claude-led planning with automatic GPT specialist dispatch through the official Codex plugin."
   },
   "allowCrossMarketplaceDependenciesOn": [
     "openai-codex"
@@ -15,7 +15,6 @@
     {
       "name": "cgo",
       "description": "Claude leads. GPT executes. CGO keeps the work observable.",
-      "version": "0.1.0",
       "author": {
         "name": "CGO Contributors"
       },

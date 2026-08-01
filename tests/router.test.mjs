@@ -1,86 +1,87 @@
 import assert from "node:assert/strict";
+import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-const hookPath = path.resolve(
-  "plugins/cgo/hooks/cgo-router.mjs"
-);
+const hookPath = path.resolve("plugins/cgo/hooks/cgo-router.mjs");
+const contract = fs.readFileSync("tests/fixtures/router-contract-v2.txt", "utf8").trimEnd();
 
-function route(prompt) {
+function invoke(input) {
   const result = spawnSync(process.execPath, [hookPath], {
-    input: JSON.stringify({
-      session_id: "fixture-session",
-      cwd: "/tmp/fixture-project",
-      hook_event_name: "UserPromptSubmit",
-      prompt
-    }),
+    input,
     encoding: "utf8"
   });
   assert.equal(result.status, 0, result.stderr || `hook exited ${result.status}`);
   return result.stdout.trim() ? JSON.parse(result.stdout) : null;
 }
 
+function route(prompt) {
+  return invoke(JSON.stringify({
+    session_id: "fixture-session",
+    cwd: "/tmp/fixture-project",
+    hook_event_name: "UserPromptSubmit",
+    prompt
+  }));
+}
+
 function context(prompt) {
   const output = route(prompt);
   assert.ok(output, `expected routing context for: ${prompt}`);
+  assert.equal(output.hookSpecificOutput?.hookEventName, "UserPromptSubmit");
   return output.hookSpecificOutput.additionalContext;
 }
 
-test("routes specialist and mixed work while retaining the current Claude planner", () => {
-  assert.match(context("새 로그인 기능을 구현해"), /ROLES=IMPLEMENTATION/);
-  assert.match(context("공식 자료로 딥리서치해"), /ROLES=DEEP_RESEARCH/);
-  assert.match(context("웹에서 최신 자료를 검색해 조사해"), /ROLES=WEB_RESEARCH/);
-  assert.match(context("이 변경사항을 코드 리뷰해"), /ROLES=REVIEW/);
-  assert.match(context("회귀 테스트와 QA를 진행해"), /ROLES=QA/);
-
-  const mixed = context("먼저 설계하고 이어서 기능을 구현해");
-  assert.match(mixed, /ROUTE=MIXED/);
-  assert.match(mixed, /PLANNER=CURRENT_CLAUDE_MODEL/);
-  assert.match(mixed, /dispatch/);
-});
-
-test("read-only language suppresses incidental implementation words", () => {
-  const review = context("READ-ONLY REVIEW. Do not implement the fix.");
-  assert.match(review, /ROLES=REVIEW/);
-  assert.doesNotMatch(review, /ROLES=.*IMPLEMENTATION/);
-
-  const staged = context("먼저 읽기 전용 리뷰하고 그 다음 발견된 문제를 실제로 수정해");
-  assert.match(staged, /ROLES=.*IMPLEMENTATION/);
-  assert.match(staged, /ROLES=.*REVIEW/);
-});
-
-test("review and QA targets do not escalate incidental implementation nouns to write access", () => {
+test("malformed, empty, and every leading-slash prompt bypass the router", () => {
+  assert.equal(invoke("not-json"), null);
+  assert.equal(invoke("{}"), null);
+  assert.equal(route("  \n\t"), null);
   for (const prompt of [
-    "이 구현을 코드 리뷰해",
-    "구현된 로그인 기능의 회귀 테스트와 QA를 진행해",
-    "Review this implementation",
-    "Run QA for this implementation",
-    "Review this fix"
+    "/cgo:doctor",
+    "/codex:status",
+    "/review",
+    "/qa",
+    "/agents implement this",
+    "   /model opus"
   ]) {
-    const routed = context(prompt);
-    assert.doesNotMatch(routed, /ROLES=.*IMPLEMENTATION/, prompt);
+    assert.equal(route(prompt), null, prompt);
   }
-
-  assert.match(context("이 구현을 코드 리뷰해"), /ROLES=REVIEW/);
-  assert.match(
-    context("구현된 로그인 기능의 회귀 테스트와 QA를 진행해"),
-    /ROLES=QA/
-  );
-
-  const staged = context("먼저 구현을 리뷰하고 발견된 문제를 실제로 수정해");
-  assert.match(staged, /ROLES=.*IMPLEMENTATION/);
-  assert.match(staged, /ROLES=.*REVIEW/);
 });
 
-test("does not route unrelated prompts or direct Codex commands", () => {
-  assert.equal(route("오늘 날짜가 뭐야?"), null);
-  assert.equal(route("/codex:status"), null);
+test("all normal prompts receive one byte-identical language-agnostic contract", () => {
+  const prompts = [
+    "What does this function do?",
+    "Implement the approved login change.",
+    "새 로그인 기능을 구현해.",
+    "承認されたログイン変更を実装してください。",
+    "请审查此更改，但不要修改文件。",
+    "ابحث في المصادر الرسمية ولخّص النتائج.",
+    "इस बदलाव के लिए रिग्रेशन टेस्ट चलाएँ।",
+    "Проведи глубокое исследование по этой теме.",
+    "Implementa el cambio de autenticación aprobado.",
+    "ኮዱን ይገምግሙ፣ ፋይሎቹን አይቀይሩ።",
+    "ตรวจสอบการเปลี่ยนแปลงนี้โดยไม่แก้ไขไฟล์",
+    "이 patch를 review만 해. Do not implement."
+  ];
+
+  const outputs = prompts.map(context);
+  assert.deepEqual([...new Set(outputs)], [contract]);
+  for (let index = 0; index < prompts.length; index += 1) {
+    assert.doesNotMatch(outputs[index], new RegExp(prompts[index].replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  }
 });
 
-test("generated context is portable and contains no user home path", () => {
-  const output = context("QA 검증을 실행해");
-  assert.doesNotMatch(output, /\/Users\//);
-  assert.match(output, /server .*cgo/i);
-  assert.match(output, /fresh foreground/i);
+test("the fixed envelope contains the approved semantic and abstention boundary", () => {
+  assert.match(contract, /^\[CGO_ROUTING_V2\]/);
+  assert.match(contract, /CLASSIFIER_PROVENANCE=CURRENT_CLAUDE_MODEL_SEMANTIC/);
+  assert.match(contract, /CONFIDENCE_PROVENANCE=NONE/);
+  assert.match(contract, /CLAUDE_ONLY \| SPECIALIST/);
+  assert.match(contract, /CLEAR_SINGLE \| CLEAR_MULTI \| AMBIGUOUS \| OOS_UNKNOWN/);
+  assert.match(contract, /EXPLICIT \| ABSENT \| CONFLICTING/);
+  assert.match(contract, /simple.*CLAUDE_ONLY/i);
+  assert.match(contract, /clarif/i);
+  assert.match(contract, /false-write/i);
+  assert.match(contract, /fresh tracked background/i);
+  assert.doesNotMatch(contract, /CGO_ROUTING_V1|ROUTE=|ROLES=/);
+  assert.doesNotMatch(contract, /\/Users\//);
 });

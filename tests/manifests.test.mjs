@@ -11,14 +11,15 @@ test("marketplace and plugin manifests declare the portable dependency boundary"
   assert.equal(marketplace.name, "claude-gpt-orchestrator-marketplace");
   assert.ok(marketplace.allowCrossMarketplaceDependenciesOn.includes("openai-codex"));
   assert.equal(marketplace.plugins[0].source, "./plugins/cgo");
-  assert.equal(marketplace.plugins[0].version, "0.1.0");
+  assert.equal(marketplace.version, "0.2.0");
+  assert.equal(marketplace.plugins[0].version, undefined);
 
   const plugin = readJson(
     "plugins/cgo/.claude-plugin/plugin.json"
   );
   assert.equal(plugin.name, "cgo");
   assert.equal(plugin.displayName, "Claude GPT Orchestrator (CGO)");
-  assert.equal(plugin.version, "0.1.0");
+  assert.equal(plugin.version, "0.2.0");
   assert.equal(plugin.license, "Apache-2.0");
   assert.deepEqual(plugin.dependencies, [{
     name: "codex",
@@ -27,6 +28,16 @@ test("marketplace and plugin manifests declare the portable dependency boundary"
   assert.equal(plugin.mcpServers, "./.mcp.json");
   assert.equal(plugin.hooks, undefined);
   assert.ok(fs.existsSync("plugins/cgo/hooks/hooks.json"));
+});
+
+test("all package and runtime version surfaces agree on 0.2.0", () => {
+  const packageJson = readJson("package.json");
+  const lock = readJson("package-lock.json");
+  assert.equal(packageJson.version, "0.2.0");
+  assert.equal(lock.version, "0.2.0");
+  assert.equal(lock.packages[""].version, "0.2.0");
+  assert.match(fs.readFileSync("plugins/cgo/server/server.mjs", "utf8"), /version: "0\.2\.0"/);
+  assert.match(fs.readFileSync("plugins/cgo/server/tools.mjs", "utf8"), /version: "0\.2\.0"/);
 });
 
 test("MCP manifest uses plugin path variables and no machine-local paths", () => {
@@ -52,4 +63,22 @@ test("public package includes required legal and maintainer documents", () => {
   assert.match(fs.readFileSync("LICENSE", "utf8"), /Apache License/);
   assert.match(fs.readFileSync("README.md", "utf8"), /not affiliated/i);
   assert.match(fs.readFileSync("README.md", "utf8"), /may require.*subscription|subscription.*may require/i);
+});
+
+test("public documentation states the v2 language, privacy, and proof boundaries", () => {
+  const readme = fs.readFileSync("README.md", "utf8");
+  const security = fs.readFileSync("SECURITY.md", "utf8");
+  const changelog = fs.readFileSync("CHANGELOG.md", "utf8");
+  assert.doesNotMatch(readme, /[가-힣]/, "README examples and prose must remain English-only");
+  assert.doesNotMatch(readme, /Fixed v0\.1\.0 policy|classifier is deterministic/i);
+  assert.match(readme, /no language allow-list/i);
+  assert.match(readme, /does not guarantee identical accuracy/i);
+  assert.match(readme, /simple.*stay.*Claude/i);
+  assert.match(readme, /clarif.*once/i);
+  assert.match(readme, /0700/);
+  assert.match(readme, /50.*jobs|jobs.*50/i);
+  assert.match(security, /0700/);
+  assert.match(security, /full.*prompt|prompt.*full/i);
+  assert.match(security, /50.*jobs|jobs.*50/i);
+  assert.match(changelog, /## 0\.2\.0 - 2026-08-02/);
 });

@@ -7,8 +7,15 @@ import {
   resolveOfficialCompanion
 } from "./companion.mjs";
 import {
+  CLASSIFIER_PROVENANCE,
+  CONFIDENCE_PROVENANCE,
+  DECISION_STATE_ENUM,
   REQUIRED_MODEL,
-  buildTaskInvocation
+  ROLE_ENUM,
+  ROUTER_CONTRACT,
+  WRITE_INTENT_ENUM,
+  buildTaskInvocation,
+  validateDispatchRequest
 } from "./policy.mjs";
 import {
   runObservation,
@@ -16,18 +23,10 @@ import {
   validateJobId
 } from "./runner.mjs";
 
-const ROLE_ENUM = [
-  "IMPLEMENTATION",
-  "DEEP_RESEARCH",
-  "WEB_RESEARCH",
-  "REVIEW",
-  "QA"
-];
-
 export const TOOL_DEFINITIONS = [
   {
     name: "dispatch",
-    description: "Dispatch one bounded specialist task to GPT through the official Codex plugin. Model, effort, write access, current project, fresh-thread mode, and foreground execution are enforced by CGO.",
+    description: "Enqueue one bounded specialist task through the official Codex plugin. Model, effort, write access, current project, fresh-thread mode, and tracked background execution are enforced by CGO.",
     inputSchema: {
       type: "object",
       properties: {
@@ -41,9 +40,38 @@ export const TOOL_DEFINITIONS = [
           minLength: 1,
           maxLength: 120000,
           description: "Self-contained task contract for the specialist."
-        }
+        },
+        router_contract: {
+          type: "string",
+          const: ROUTER_CONTRACT
+        },
+        decision_state: {
+          type: "string",
+          enum: DECISION_STATE_ENUM
+        },
+        write_intent: {
+          type: "string",
+          enum: WRITE_INTENT_ENUM
+        },
+        workflow_id: {
+          anyOf: [
+            { type: "null" },
+            { type: "string", pattern: "^cgo-workflow-[a-z0-9][a-z0-9-]{0,114}$" }
+          ]
+        },
+        sequence_index: { type: "integer", minimum: 1, maximum: 5 },
+        sequence_total: { type: "integer", minimum: 1, maximum: 5 }
       },
-      required: ["role", "brief"],
+      required: [
+        "role",
+        "brief",
+        "router_contract",
+        "decision_state",
+        "write_intent",
+        "workflow_id",
+        "sequence_index",
+        "sequence_total"
+      ],
       additionalProperties: false
     }
   },
@@ -93,6 +121,35 @@ function exactObject(value, allowedKeys) {
   return value;
 }
 
+function ensurePrivatePluginData(candidate) {
+  const pluginData = path.resolve(candidate);
+  if (fs.existsSync(pluginData)) {
+    const existing = fs.lstatSync(pluginData);
+    if (existing.isSymbolicLink()) {
+      throw new Error("The CGO plugin data root must not be a symbolic link.");
+    }
+    if (!existing.isDirectory()) {
+      throw new Error("The CGO plugin data root must be a directory.");
+    }
+  } else {
+    fs.mkdirSync(pluginData, { recursive: true, mode: 0o700 });
+  }
+
+  const resolved = fs.realpathSync.native(pluginData);
+  const stat = fs.lstatSync(resolved);
+  if (stat.isSymbolicLink() || !stat.isDirectory()) {
+    throw new Error("The CGO plugin data root must be a real directory.");
+  }
+  if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+    throw new Error("The CGO plugin data root must be owned by the current user.");
+  }
+  fs.chmodSync(resolved, 0o700);
+  if ((fs.statSync(resolved).mode & 0o777) !== 0o700) {
+    throw new Error("The CGO plugin data root must have mode 0700.");
+  }
+  return resolved;
+}
+
 function resolveRuntime(env) {
   const projectCandidate = env.CGO_PROJECT_DIR || process.cwd();
   let projectDir;
@@ -104,10 +161,14 @@ function resolveRuntime(env) {
   } catch (error) {
     throw new Error(`Cannot resolve the fixed Claude project directory: ${error.message}`);
   }
+  const configDir = env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude");
+  const pluginDataCandidate = env.CGO_PLUGIN_DATA ||
+    env.CLAUDE_PLUGIN_DATA ||
+    path.join(configDir, "plugins", "data", "cgo");
   return {
     projectDir,
-    pluginData: env.CGO_PLUGIN_DATA || path.join(os.tmpdir(), "cgo"),
-    configDir: env.CLAUDE_CONFIG_DIR || path.join(os.homedir(), ".claude")
+    pluginData: ensurePrivatePluginData(pluginDataCandidate),
+    configDir
   };
 }
 
@@ -123,32 +184,42 @@ function textResult(payload, isError = false) {
   };
 }
 
-function observationPayload(operation, output) {
+function sanitizeObservationReceipt(operation, payload) {
+  if (operation !== "result" || !payload?.storedJob?.request) {
+    return { receipt: payload, redactions: [] };
+  }
+  const { prompt: _prompt, ...safeRequest } = payload.storedJob.request;
+  return {
+    receipt: {
+      ...payload,
+      storedJob: {
+        ...payload.storedJob,
+        request: safeRequest
+      }
+    },
+    redactions: ["storedJob.request.prompt"]
+  };
+}
+
+function observationPayload(operation, output, requestedJobId = null) {
+  const observedJob = output.payload.job ?? output.payload.storedJob ?? null;
+  const sanitized = sanitizeObservationReceipt(operation, output.payload);
   return {
     operation,
-    receipt: output.payload,
-    stderr: output.stderr,
+    receipt: sanitized.receipt,
+    receiptRedactions: sanitized.redactions,
+    requestedJobId,
+    codexThreadId: observedJob?.threadId ?? null,
+    stderrPresent: Boolean(output.stderr),
     observedJobIds: output.jobIds
   };
 }
 
-function statusJobs(payload) {
-  return [
-    ...(Array.isArray(payload?.running) ? payload.running : []),
-    ...(payload?.latestFinished ? [payload.latestFinished] : []),
-    ...(Array.isArray(payload?.recent) ? payload.recent : [])
-  ];
-}
-
-function correlateFreshTask(statusPayload, taskPayload) {
-  const threadId = taskPayload?.threadId;
-  if (typeof threadId !== "string" || !threadId) return null;
-  const matches = statusJobs(statusPayload).filter((job) => job?.threadId === threadId);
-  return matches.length === 1 ? matches[0] : null;
-}
-
 export function callTool(name, rawArguments, env = process.env) {
   try {
+    const dispatchRequest = name === "dispatch"
+      ? validateDispatchRequest(rawArguments)
+      : null;
     const runtime = resolveRuntime(env);
 
     if (name === "doctor") {
@@ -156,7 +227,7 @@ export function callTool(name, rawArguments, env = process.env) {
       const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
       return textResult({
         product: "Claude GPT Orchestrator (CGO)",
-        version: "0.1.0",
+        version: "0.2.0",
         node: process.version,
         projectDir: runtime.projectDir,
         pluginData: runtime.pluginData,
@@ -166,17 +237,12 @@ export function callTool(name, rawArguments, env = process.env) {
       });
     }
 
-    const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
-    if (!plugin.ok || !plugin.compatible) {
-      throw new Error(plugin.message);
-    }
-    const companion = resolveOfficialCompanion({ configDir: runtime.configDir });
-
     if (name === "dispatch") {
-      const args = exactObject(rawArguments, ["role", "brief"]);
+      const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
+      if (!plugin.ok || !plugin.compatible) throw new Error(plugin.message);
+      const companion = resolveOfficialCompanion({ configDir: runtime.configDir });
       const invocation = buildTaskInvocation({
-        role: args.role,
-        brief: args.brief,
+        request: dispatchRequest,
         companionPath: companion.path
       });
       const output = runProcess({
@@ -187,35 +253,43 @@ export function callTool(name, rawArguments, env = process.env) {
         env,
         operation: "task"
       });
-      const statusOutput = runObservation({
-        companionPath: companion.path,
-        operation: "status",
-        projectDir: runtime.projectDir,
-        pluginData: runtime.pluginData,
-        env
-      });
-      const correlatedJob = correlateFreshTask(statusOutput.payload, output.payload);
+      const jobId = validateJobId(output.payload.jobId);
       return textResult({
         operation: "dispatch",
+        routerContract: dispatchRequest.routerContract,
+        classifierProvenance: CLASSIFIER_PROVENANCE,
+        confidenceProvenance: CONFIDENCE_PROVENANCE,
+        decisionState: dispatchRequest.decisionState,
+        writeIntent: dispatchRequest.writeIntent,
+        workflowId: dispatchRequest.workflowId,
+        sequenceIndex: dispatchRequest.sequenceIndex,
+        sequenceTotal: dispatchRequest.sequenceTotal,
         role: invocation.contract.role,
         requestedModel: invocation.contract.model,
         effort: invocation.contract.effort,
         mutationPolicy: invocation.contract.write ? "workspace-write" : "read-only",
         threadMode: "fresh",
-        execution: "foreground",
+        execution: "background",
         effectiveIdentity: "UNKNOWN_UNTIL_INSTRUMENTED",
-        taskReceipt: output.payload,
-        correlatedJob,
-        jobId: correlatedJob?.id ?? null,
-        stderr: output.stderr,
-        observedJobIds: correlatedJob?.id ? [correlatedJob.id] : [],
-        correlation: correlatedJob
-          ? "MATCHED_BY_FRESH_THREAD_ID"
-          : "UNRESOLVED_NO_UNIQUE_THREAD_MATCH"
+        taskReceipt: {
+          jobId,
+          status: output.payload.status,
+          title: output.payload.title,
+          logFile: output.payload.logFile
+        },
+        officialStatus: output.payload.status,
+        jobId,
+        codexThreadId: null,
+        stderrPresent: Boolean(output.stderr),
+        observedJobIds: output.jobIds,
+        correlation: "OFFICIAL_QUEUED_JOB_ID"
       });
     }
 
     if (name === "status") {
+      const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
+      if (!plugin.ok || !plugin.compatible) throw new Error(plugin.message);
+      const companion = resolveOfficialCompanion({ configDir: runtime.configDir });
       const args = exactObject(rawArguments, ["job_id"]);
       if (args.job_id !== undefined) validateJobId(args.job_id);
       return textResult(observationPayload(
@@ -227,11 +301,15 @@ export function callTool(name, rawArguments, env = process.env) {
           projectDir: runtime.projectDir,
           pluginData: runtime.pluginData,
           env
-        })
+        }),
+        args.job_id ?? null
       ));
     }
 
     if (name === "result") {
+      const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
+      if (!plugin.ok || !plugin.compatible) throw new Error(plugin.message);
+      const companion = resolveOfficialCompanion({ configDir: runtime.configDir });
       const args = exactObject(rawArguments, ["job_id"]);
       validateJobId(args.job_id);
       return textResult(observationPayload(
@@ -243,12 +321,16 @@ export function callTool(name, rawArguments, env = process.env) {
           projectDir: runtime.projectDir,
           pluginData: runtime.pluginData,
           env
-        })
+        }),
+        args.job_id
       ));
     }
 
     throw new Error(`Unknown CGO tool: ${name}.`);
   } catch (error) {
-    return textResult({ error: error.message }, true);
+    return textResult({
+      ...(error?.code ? { code: error.code } : {}),
+      error: error.message
+    }, true);
   }
 }

@@ -8,37 +8,35 @@ import {
 
 test("structured receipt parsing never infers job ids from model prose", () => {
   const payload = parseStructuredOutput(JSON.stringify({
-    status: 0,
-    threadId: "session-fixture-123",
-    rawOutput: "implementation completed for read-only code-review",
-    touchedFiles: []
+    jobId: "task-fixture-123",
+    status: "queued",
+    title: "Codex Task",
+    summary: "read-only code-review",
+    logFile: "/tmp/task-fixture-123.log"
   }), "task");
 
-  assert.deepEqual(extractStructuredJobIds(payload), []);
+  assert.deepEqual(extractStructuredJobIds(payload), ["task-fixture-123"]);
 });
 
-test("official task receipts use numeric 0/1 execution status", () => {
+test("official background task receipts require a safe queued job id", () => {
   const base = {
-    threadId: "session-fixture-123",
-    rawOutput: "done",
-    touchedFiles: []
+    jobId: "task-fixture-123",
+    title: "Codex Task",
+    summary: "Task",
+    logFile: "/tmp/task-fixture-123.log"
   };
 
   assert.equal(
-    parseStructuredOutput(JSON.stringify({ ...base, status: 0 }), "task").status,
-    0
+    parseStructuredOutput(JSON.stringify({ ...base, status: "queued" }), "task").status,
+    "queued"
   );
-  assert.equal(
-    parseStructuredOutput(JSON.stringify({ ...base, status: 1 }), "task").status,
-    1
+  assert.throws(
+    () => parseStructuredOutput(JSON.stringify({ ...base, jobId: "../../escape", status: "queued" }), "task"),
+    /task.*jobId.*safe/i
   );
   assert.throws(
     () => parseStructuredOutput(JSON.stringify({ ...base, status: "completed" }), "task"),
-    /task.*status.*0 or 1/i
-  );
-  assert.throws(
-    () => parseStructuredOutput(JSON.stringify({ ...base, status: 2 }), "task"),
-    /task.*status.*0 or 1/i
+    /task.*status.*queued/i
   );
 });
 
@@ -55,6 +53,49 @@ test("structured receipt parsing accepts only explicit official job fields", () 
     "task-finished-123",
     "review-recent-123"
   ]);
+});
+
+test("official exact-job status receipts use the single job shape", () => {
+  const payload = parseStructuredOutput(JSON.stringify({
+    workspaceRoot: "/fixture/project",
+    job: {
+      id: "task-fixture-123",
+      status: "running",
+      phase: "working",
+      pid: process.pid
+    }
+  }), "status-one");
+
+  assert.equal(payload.job.id, "task-fixture-123");
+  assert.deepEqual(extractStructuredJobIds(payload), ["task-fixture-123"]);
+  assert.throws(
+    () => parseStructuredOutput(JSON.stringify({ workspaceRoot: "/fixture/project" }), "status-one"),
+    /status-one.*missing job/i
+  );
+});
+
+test("official exact-job result receipts require safe matching job identities", () => {
+  const payload = parseStructuredOutput(JSON.stringify({
+    job: { id: "task-fixture-123", status: "completed" },
+    storedJob: { id: "task-fixture-123", status: "completed", result: {} }
+  }), "result");
+  assert.equal(payload.job.id, "task-fixture-123");
+  assert.equal(payload.storedJob.id, "task-fixture-123");
+
+  assert.throws(
+    () => parseStructuredOutput(JSON.stringify({
+      job: { id: "../../escape", status: "completed" },
+      storedJob: { id: "task-fixture-123", status: "completed", result: {} }
+    }), "result"),
+    /result.*job\.id.*safe/i
+  );
+  assert.throws(
+    () => parseStructuredOutput(JSON.stringify({
+      job: { id: "task-fixture-123", status: "completed" },
+      storedJob: { id: "../../escape", status: "completed", result: {} }
+    }), "result"),
+    /result.*storedJob\.id.*safe/i
+  );
 });
 
 test("malformed structured companion output is rejected", () => {

@@ -1,5 +1,5 @@
 {
-  "description": "Detect specialist work in normal Claude Code prompts and inject the CGO contract.",
+  "description": "Inject one fixed language-agnostic CGO semantic routing contract into normal Claude Code prompts.",
   "hooks": {
     "UserPromptSubmit": [
       {

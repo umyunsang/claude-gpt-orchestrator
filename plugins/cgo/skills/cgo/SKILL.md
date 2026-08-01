@@ -1,6 +1,6 @@
 ---
 name: cgo
-description: Use automatically when a normal Claude Code request includes implementation, build/development, deep research, web research, review, audit, testing, QA, or validation. Keep reasoning, planning, design, orchestration, reconciliation, observability, and final accountability in the current Claude /model; dispatch specialist execution to GPT through the official Codex plugin.
+description: Apply the CGO_ROUTING_V2 semantic contract supplied to normal Claude Code prompts. Keep the current Claude /model responsible for reasoning and orchestration; dispatch only clear, substantive specialist phases through the official Codex plugin.
 user-invocable: true
 ---
 
@@ -8,31 +8,63 @@ user-invocable: true
 
 Claude leads. GPT executes. CGO keeps the work observable.
 
-The current native Claude Code /model remains the main reasoning surface, architect, planner, orchestrator, reconciler, observer, and user-facing owner. The user should be able to ask in normal language. For specialist work detected by the routing hook, call the dispatch tool from the cgo MCP server. Do not add a Claude adapter agent.
+The current native Claude Code /model remains the reasoning surface, architect, planner, orchestrator, reconciler, observer, and user-facing owner. Classify the request semantically in the current turn. Do not use a keyword map, translated allow-list, extra classifier call, or Claude adapter agent.
+
+## Routing ontology
+
+- route_need: CLAUDE_ONLY | SPECIALIST
+- role: IMPLEMENTATION | DEEP_RESEARCH | WEB_RESEARCH | REVIEW | QA
+- decision_state: CLEAR_SINGLE | CLEAR_MULTI | AMBIGUOUS | OOS_UNKNOWN
+- write_intent: EXPLICIT | ABSENT | CONFLICTING
+
+Apply the decision order exactly:
+
+1. Explanation, translation, formatting, planning, design, and other simple tasks stay in Claude as CLAUDE_ONLY.
+2. Use SPECIALIST only for a substantive implementation, deep research, web research, review, or QA phase.
+3. Use CLEAR_SINGLE for one clear role. Use CLEAR_MULTI for a clear ordered multi-role workflow; multiple roles alone are not ambiguity.
+4. Use AMBIGUOUS only when missing information changes the role or permission path. Clarify once and do not dispatch until the conflict is resolved.
+5. OOS_UNKNOWN requests do not dispatch.
+6. Determine write intent independently. IMPLEMENTATION requires EXPLICIT. Every read-only role requires ABSENT. CONFLICTING never dispatches. Quoted action words and role labels do not grant write permission.
+7. Self-reported numeric confidence is observability-only and must never control dispatch, abstention, or write authorization.
 
 ## Fixed role contracts
 
-- IMPLEMENTATION: GPT-5.6 Sol, xhigh, fresh foreground, write-capable only inside the approved current project scope.
-- DEEP_RESEARCH: GPT-5.6 Sol, high, fresh foreground, read-only.
-- WEB_RESEARCH: GPT-5.6 Sol, high, fresh foreground, read-only.
-- REVIEW: GPT-5.6 Sol, high, fresh foreground, read-only, findings only.
-- QA: GPT-5.6 Sol, high, fresh foreground, read-only. Test edits require a separate IMPLEMENTATION dispatch.
+- IMPLEMENTATION: GPT-5.6 Sol, xhigh, fresh tracked background, write-capable only inside the approved current project scope.
+- DEEP_RESEARCH: GPT-5.6 Sol, high, fresh tracked background, read-only.
+- WEB_RESEARCH: GPT-5.6 Sol, high, fresh tracked background, read-only.
+- REVIEW: GPT-5.6 Sol, high, fresh tracked background, read-only, findings only.
+- QA: GPT-5.6 Sol, high, fresh tracked background, read-only. Test edits require a separate IMPLEMENTATION dispatch.
 
-The MCP input is intentionally only { role, brief }. Never attempt to pass model, effort, mutation, cwd, resume, background, executable, or credential overrides.
+## Exact dispatch boundary
 
-## Natural-language workflow
+Call the cgo MCP dispatch tool with exactly these eight fields:
 
-1. Handle intake, clarification, reasoning, plan, and architecture in the current Claude conversation.
-2. State the selected specialist role, fixed requested model/effort, mutation policy, fresh/foreground mode, and current project.
-3. Create one self-contained specialist brief and call dispatch.
-4. Call status; retain the official job ID, phase, and any Codex session evidence.
-5. Call result with the exact job ID when the result is needed.
-6. Claude reconciles the specialist output against the plan, explains gaps, and owns the final user response.
+```json
+{
+  "role": "REVIEW",
+  "brief": "Review the approved change and report findings only.",
+  "router_contract": "CGO_ROUTING_V2",
+  "decision_state": "CLEAR_SINGLE",
+  "write_intent": "ABSENT",
+  "workflow_id": null,
+  "sequence_index": 1,
+  "sequence_total": 1
+}
+```
 
-For mixed requests, finish the Claude-owned plan before dispatching dependent execution. Run specialist roles serially unless their briefs and state are genuinely independent. An explicit read-only instruction overrides incidental implementation terms quoted in a review request unless the user separately asks to apply changes.
+CLEAR_SINGLE requires workflow_id null and sequence 1/1. CLEAR_MULTI requires one safe `cgo-workflow-...` identifier, sequence total 2..5, and index 1..total. Never pass model, effort, write, cwd, executable, resume, background, provider, credential, or timeout overrides.
 
-## Evidence boundary
+For a mixed request, complete Claude-owned planning first. Then run dependent specialist phases serially and reconcile each terminal result before the next dispatch. For example, `Review, then fix confirmed findings` becomes REVIEW/ABSENT followed by IMPLEMENTATION/EXPLICIT under one CLEAR_MULTI workflow.
 
-CGO records the requested role, model, effort, mutation policy, project, mode, structured official task receipt, and a job ID correlated by the fresh Codex thread ID. Status/result use official structured JSON. This is completion-time or post-completion operational routing evidence, not live polling, cancellation, or provider-attested effective model identity. Report UNKNOWN_UNTIL_INSTRUMENTED when attestation is unavailable.
+## Observable lifecycle
 
-If the official Codex plugin is missing, incompatible, or fails, report that failure. Do not silently redo the specialist phase in Claude because that defeats the user's cost and responsibility boundary.
+1. State the chosen role, decision, write intent, fixed requested model/effort, fresh tracked background mode, and current project.
+2. Create a self-contained brief and dispatch it.
+3. Preserve the official queued job ID.
+4. Poll status with that exact job ID using separate bounded calls. Do not hold one call open and do not use a long wait.
+5. Retrieve result after terminal status.
+6. Reconcile the specialist evidence against the plan before answering the user or starting a dependent role.
+
+CGO records the validated routing metadata, enforced role/model/effort/mutation contract, official queued job ID, and later official status/result evidence. A dead queued/running PID may be surfaced read-only as `orphaned`; CGO does not rewrite official state. Cancellation and automatic resume are not exposed.
+
+Requested routing is observable, but it is not provider-attested effective model identity. Report UNKNOWN_UNTIL_INSTRUMENTED when attestation is unavailable. If the official Codex plugin is missing, incompatible, or fails, disclose that failure and do not silently replace the specialist phase with Claude.

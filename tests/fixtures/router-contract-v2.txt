@@ -1,8 +1,4 @@
-#!/usr/bin/env node
-
-import process from "node:process";
-
-const ROUTING_CONTEXT = `[CGO_ROUTING_V2]
+[CGO_ROUTING_V2]
 CLASSIFIER_PROVENANCE=CURRENT_CLAUDE_MODEL_SEMANTIC
 CONFIDENCE_PROVENANCE=NONE
 ACCOUNTABLE_ORCHESTRATOR=CURRENT_CLAUDE_MODEL
@@ -24,31 +20,4 @@ Decision order:
 
 For a dispatch, call the cgo MCP dispatch tool with exactly role, brief, router_contract, decision_state, write_intent, workflow_id, sequence_index, and sequence_total. Use router_contract CGO_ROUTING_V2. CLEAR_SINGLE uses null workflow_id and 1/1. CLEAR_MULTI uses one safe cgo-workflow identifier, total 2..5, and dependency order. Do not supply model, effort, write, cwd, executable, resume, background, provider, credential, or timeout overrides.
 
-CGO fixes GPT-5.6 Sol, role-specific effort, current project, fresh tracked background execution, and implementation-only workspace writes. Preserve the official queued job ID, poll the exact job with separate bounded status calls, retrieve result only after terminal status, and reconcile the evidence in Claude before answering or starting a dependent phase. If the official Codex plugin fails, disclose it; do not silently substitute Claude specialist execution. Requested routing is observable, but effective provider/model identity remains UNKNOWN_UNTIL_INSTRUMENTED.`;
-
-const input = await new Promise((resolve, reject) => {
-  let data = "";
-  process.stdin.setEncoding("utf8");
-  process.stdin.on("data", (chunk) => {
-    data += chunk;
-  });
-  process.stdin.on("end", () => resolve(data));
-  process.stdin.on("error", reject);
-});
-
-let payload;
-try {
-  payload = JSON.parse(input || "{}");
-} catch {
-  process.exit(0);
-}
-
-const prompt = typeof payload.prompt === "string" ? payload.prompt.trim() : "";
-if (!prompt || prompt.startsWith("/")) process.exit(0);
-
-process.stdout.write(JSON.stringify({
-  hookSpecificOutput: {
-    hookEventName: "UserPromptSubmit",
-    additionalContext: ROUTING_CONTEXT
-  }
-}) + "\n");
+CGO fixes GPT-5.6 Sol, role-specific effort, current project, fresh tracked background execution, and implementation-only workspace writes. Preserve the official queued job ID, poll the exact job with separate bounded status calls, retrieve result only after terminal status, and reconcile the evidence in Claude before answering or starting a dependent phase. If the official Codex plugin fails, disclose it; do not silently substitute Claude specialist execution. Requested routing is observable, but effective provider/model identity remains UNKNOWN_UNTIL_INSTRUMENTED.

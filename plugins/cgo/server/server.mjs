@@ -34,9 +34,9 @@ function handle(message) {
       serverInfo: {
         name: "cgo",
         title: "Claude GPT Orchestrator (CGO)",
-        version: "0.1.0"
+        version: "0.2.0"
       },
-      instructions: "Use dispatch only for implementation, deep research, web research, review, and QA. Claude remains the planner and user-facing orchestrator."
+      instructions: "Apply CGO_ROUTING_V2. Keep simple, ambiguous, and out-of-scope work in Claude; dispatch only validated clear specialist phases. Claude remains the planner and user-facing orchestrator."
     });
   }
 
