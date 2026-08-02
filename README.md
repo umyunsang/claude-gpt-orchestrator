@@ -23,29 +23,52 @@ No proxy. No second interface. No manual prompt shuttling.
 
 ## Quick start
 
-### 1. Install the official Codex plugin
+### 1. Install the prerequisites
 
-~~~text
-claude plugin marketplace add openai/codex-plugin-cc
-claude plugin install codex@openai-codex
+CGO requires Node.js 20 or newer and a global Python 3 installation. Confirm that both runtimes are available before starting Claude Code:
+
+~~~bash
+node --version
+python --version
+# If your system exposes Python as python3:
+python3 --version
 ~~~
 
-### 2. Install CGO
+Then start Claude Code in the project where you want to use CGO:
 
-~~~text
-claude plugin marketplace add umyunsang/claude-gpt-orchestrator
-claude plugin install cgo@claude-gpt-orchestrator-marketplace
+~~~bash
+claude
 ~~~
 
-### 3. Restart and verify
+Run every `/...` command below inside the Claude Code session, not in your system shell.
 
-Restart Claude Code so the new hook and MCP server load, then confirm both plugins are enabled:
+### 2. Install and set up the official Codex plugin
 
 ~~~text
-claude plugin list --json
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
 ~~~
 
-Start a new interactive Claude Code session and run:
+Do not install CGO until `/codex:setup` reports that Codex is ready. If setup reports that Codex is not authenticated, run `!codex login`, complete the sign-in flow, and run `/codex:setup` again.
+
+### 3. Install CGO
+
+~~~text
+/plugin marketplace add umyunsang/claude-gpt-orchestrator
+/plugin install cgo@claude-gpt-orchestrator-marketplace
+/reload-plugins
+~~~
+
+### 4. Restart and verify
+
+Restart Claude Code so the new hook and MCP server load. In the new session, run `/plugin` and confirm that both plugins are installed:
+
+- `codex@openai-codex`
+- `cgo@claude-gpt-orchestrator-marketplace`
+
+Then run:
 
 ~~~text
 /cgo:doctor
@@ -87,7 +110,9 @@ Prompts beginning with `/` bypass automatic routing so native Claude Code and pl
 
 - Claude Code with plugin marketplace and MCP support
 - Node.js 20 or newer
+- Python 3 installed globally and available as `python` or `python3`
 - Official `codex@openai-codex` plugin version 1.0.6 or a compatible later 1.x release
+- A successful `/codex:setup` result before CGO is installed or used
 - Working Claude and Codex account configurations
 
 CGO is free and open source. Claude, Codex, GPT access, subscriptions, API usage, or quota may require a paid plan or subscription.

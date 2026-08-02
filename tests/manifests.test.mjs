@@ -103,6 +103,19 @@ test("public documentation is production-facing and operationally complete", () 
   assert.match(readme, /automatic routing/i);
   assert.match(readme, /restart Claude Code/i);
   assert.match(readme, /production deployment/i);
+  assert.doesNotMatch(readme, /claude plugin (?:marketplace add|install)/i);
+  assert.match(readme, /\/plugin marketplace add openai\/codex-plugin-cc/);
+  assert.match(readme, /\/plugin install codex@openai-codex/);
+  assert.match(readme, /\/codex:setup/);
+  assert.match(readme, /Python 3 installed globally/i);
+  assert.match(deployment, /\/plugin marketplace add openai\/codex-plugin-cc/);
+  assert.match(deployment, /\/codex:setup/);
+  assert.match(deployment, /Python 3 is installed globally/i);
+  assert.ok(
+    readme.indexOf("Python 3") < readme.indexOf("/codex:setup") &&
+      readme.indexOf("/codex:setup") < readme.indexOf("/plugin marketplace add umyunsang/claude-gpt-orchestrator"),
+    "Python and Codex setup must precede CGO installation"
+  );
   assert.match(readme, /actions\/workflows\/ci\.yml\/badge\.svg/);
   assert.match(readme, /img\.shields\.io\/github\/stars/);
   assert.match(readme, /star (CGO|the repository)/i);

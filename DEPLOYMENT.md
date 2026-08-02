@@ -18,6 +18,7 @@ Confirm the following before installation:
 - The workstation and user account are trusted.
 - Claude Code is installed and can start an interactive session.
 - Node.js 20 or newer is available.
+- Python 3 is installed globally and available as `python` or `python3`.
 - Codex authentication is already configured by the operator.
 - The operator understands that CGO stores full specialist prompts locally for tracked background jobs.
 - The operator understands that read-only is not project-root read isolation. Global or project instructions and tools may read outside the current project.
@@ -28,26 +29,40 @@ Record the current versions and plugin state for rollback evidence:
 ~~~text
 claude --version
 node --version
+python --version
 claude plugin marketplace list
 claude plugin list --json
 ~~~
+
+If the workstation exposes Python only as `python3`, record `python3 --version` instead.
 
 Do not copy credentials into deployment notes or support tickets.
 
 ## Install at user scope
 
-Install the official dependency first:
+Start Claude Code in a trusted project:
 
-~~~text
-claude plugin marketplace add openai/codex-plugin-cc
-claude plugin install codex@openai-codex
+~~~bash
+claude
 ~~~
 
-Install CGO from the public custom marketplace:
+Run all remaining installation commands in that Claude Code session. Install and initialize the official dependency first:
 
 ~~~text
-claude plugin marketplace add umyunsang/claude-gpt-orchestrator
-claude plugin install cgo@claude-gpt-orchestrator-marketplace
+/plugin marketplace add openai/codex-plugin-cc
+/plugin install codex@openai-codex
+/reload-plugins
+/codex:setup
+~~~
+
+Do not continue until `/codex:setup` reports that Codex is ready. If authentication is required, run `!codex login`, complete sign-in, and run `/codex:setup` again.
+
+Install CGO from the public custom marketplace only after Codex setup succeeds:
+
+~~~text
+/plugin marketplace add umyunsang/claude-gpt-orchestrator
+/plugin install cgo@claude-gpt-orchestrator-marketplace
+/reload-plugins
 ~~~
 
 The expected plugin IDs are:
