@@ -12,7 +12,7 @@ test("resolves the installed official companion only inside its cache boundary",
   const fixture = makeFixture();
   try {
     const resolved = resolveOfficialCompanion({ configDir: fixture.configDir });
-    assert.equal(resolved.path, fs.realpathSync(fixture.companionPath));
+    assert.equal(resolved.path, fs.realpathSync.native(fixture.companionPath));
     assert.equal(resolved.version, "1.0.6");
     assert.equal(resolved.marketplace, "openai-codex");
 

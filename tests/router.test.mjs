@@ -5,7 +5,9 @@ import { spawnSync } from "node:child_process";
 import test from "node:test";
 
 const hookPath = path.resolve("plugins/cgo/hooks/cgo-router.mjs");
-const contract = fs.readFileSync("tests/fixtures/router-contract-v2.txt", "utf8").trimEnd();
+const contract = fs.readFileSync("tests/fixtures/router-contract-v2.txt", "utf8")
+  .replace(/\r\n?/g, "\n")
+  .trimEnd();
 
 function invoke(input) {
   const result = spawnSync(process.execPath, [hookPath], {

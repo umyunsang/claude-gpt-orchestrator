@@ -143,7 +143,7 @@ test("MCP server exposes bounded tools and delegates through a fake official com
       "status",
       "result"
     ]);
-    assert.equal(trace[0].cwd, fs.realpathSync(fixture.projectDir));
+    assert.equal(trace[0].cwd, fs.realpathSync.native(fixture.projectDir));
     assert.equal(trace[0].pluginData, fs.realpathSync.native(fixture.pluginData));
     assert.deepEqual(trace[0].args.slice(0, 8), [
       "--background",
