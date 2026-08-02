@@ -4,6 +4,12 @@ All notable changes follow Keep a Changelog principles.
 
 ## Unreleased
 
+## 0.2.1 - 2026-08-03
+
+### Fixed
+
+- Stopped applying the POSIX-only `0700` verification on Windows, where Node.js does not implement owner/group/other mode semantics; doctor now reports the Windows ACL as unverified instead of claiming a POSIX boundary.
+
 ### Documentation
 
 - Replaced the internal positioning memo and development-oriented README content with production-facing installation and operations documentation.

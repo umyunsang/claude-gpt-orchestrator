@@ -66,7 +66,7 @@ claude plugin marketplace list
 claude plugin list --json
 ~~~
 
-Confirm that both expected plugin IDs are enabled at user scope and that CGO reports version `0.2.0`.
+Confirm that both expected plugin IDs are enabled at user scope and that CGO reports version `0.2.1`.
 
 ### 2. Run doctor
 
@@ -78,7 +78,7 @@ Start a new interactive Claude Code session in a trusted project and run:
 
 Approve the read-only doctor MCP tool if prompted. A healthy result reports:
 
-- CGO version `0.2.0`;
+- CGO version `0.2.1`;
 - the current project directory;
 - the resolved plugin-data directory;
 - requested model `gpt-5.6-sol`;
@@ -154,7 +154,7 @@ Claude Code supplies a dedicated plugin-data path. The resolved path is authorit
 ~/.claude/plugins/data/cgo-claude-gpt-orchestrator-marketplace
 ~~~
 
-CGO verifies that the root is a real directory owned by the current user and enforces mode `0700`. Files below the root may use the official companion's default modes, while the non-traversable root provides the local-account boundary.
+CGO rejects symbolic-link or non-directory roots on every platform. On POSIX systems it verifies current-user ownership and enforces mode `0700`; files below the root may use the official companion's default modes, while the non-traversable root provides the local-account boundary. On Windows it leaves the existing ACL unchanged and reports `WINDOWS_ACL_UNVERIFIED`, because POSIX owner/group/other mode bits are not available there and CGO does not audit or rewrite DACL entries. Keep the default user-profile location and do not configure a shared or network directory for sensitive jobs.
 
 Official companion 1.0.6 retains up to the latest 50 jobs, including the full specialist prompt, request metadata, results, and logs. CGO does not provide retention-period configuration or a secure purge command. Apply device encryption, account access control, backup policy, and endpoint monitoring appropriate for the repository sensitivity.
 
@@ -204,11 +204,11 @@ Run `/cgo:doctor` in an interactive session and approve the read-only MCP tool. 
 
 ### Official Codex plugin is missing or incompatible
 
-Update `openai-codex`, update `codex@openai-codex`, restart Claude Code, and run doctor again. CGO 0.2.0 accepts compatible official 1.x releases from 1.0.6.
+Update `openai-codex`, update `codex@openai-codex`, restart Claude Code, and run doctor again. CGO 0.2.1 accepts compatible official 1.x releases from 1.0.6.
 
 ### A job remains queued or running
 
-Use the exact job ID with `/cgo:status`. CGO may report a missing worker process as `orphaned`, but version 0.2.0 does not cancel, restart, repair, or automatically resume that job.
+Use the exact job ID with `/cgo:status`. CGO may report a missing worker process as `orphaned`, but version 0.2.1 does not cancel, restart, repair, or automatically resume that job.
 
 ### Result retrieval fails
 

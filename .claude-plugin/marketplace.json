@@ -4,7 +4,7 @@
   "owner": {
     "name": "CGO Contributors"
   },
-  "version": "0.2.0",
+  "version": "0.2.1",
   "metadata": {
     "description": "Claude-led planning with automatic GPT specialist dispatch through the official Codex plugin."
   },

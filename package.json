@@ -1,6 +1,6 @@
 {
   "name": "claude-gpt-orchestrator",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Claude & GPT in one conversation: a thin Claude Code harness that automatically dispatches specialist work to the official Codex plugin.",

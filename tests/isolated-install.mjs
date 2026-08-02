@@ -79,7 +79,7 @@ try {
   );
   assert.ok(cgo, "CGO must be installed");
   assert.ok(codex, "the declared Codex dependency must be auto-installed");
-  assert.equal(cgo.version, "0.2.0");
+  assert.equal(cgo.version, "0.2.1");
   assert.deepEqual(cgo.errors ?? [], []);
   assert.equal(cgo.mcpServers?.cgo?.command, "node");
 

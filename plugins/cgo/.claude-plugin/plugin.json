@@ -1,7 +1,7 @@
 {
   "name": "cgo",
   "displayName": "Claude GPT Orchestrator (CGO)",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A thin Claude Code harness that applies language-agnostic Claude semantic routing and dispatches clear specialist work to GPT through the official Codex plugin.",
   "author": {
     "name": "CGO Contributors"

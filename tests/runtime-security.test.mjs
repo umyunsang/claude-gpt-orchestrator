@@ -29,8 +29,38 @@ test("default plugin data is private, user-owned, and outside shared temporary s
     const stat = fs.lstatSync(expected);
     assert.equal(stat.isSymbolicLink(), false);
     assert.equal(stat.isDirectory(), true);
-    assert.equal(stat.mode & 0o777, 0o700);
-    if (typeof process.getuid === "function") assert.equal(stat.uid, process.getuid());
+    if (process.platform === "win32") {
+      assert.equal(payload.pluginDataProtection, "WINDOWS_ACL_UNVERIFIED");
+    } else {
+      assert.equal(payload.pluginDataProtection, "POSIX_MODE_0700");
+      assert.equal(stat.mode & 0o777, 0o700);
+      if (typeof process.getuid === "function") assert.equal(stat.uid, process.getuid());
+    }
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("Windows does not require or rewrite unsupported POSIX mode bits", () => {
+  const fixture = makeFixture();
+  try {
+    fs.chmodSync(fixture.pluginData, 0o755);
+    const before = fs.statSync(fixture.pluginData).mode & 0o777;
+    const result = callTool("doctor", {}, {
+      ...process.env,
+      CLAUDE_CONFIG_DIR: fixture.configDir,
+      CGO_PROJECT_DIR: fixture.projectDir,
+      CGO_PLUGIN_DATA: fixture.pluginData
+    }, { platform: "win32" });
+
+    assert.equal(result.isError, false);
+    const payload = parseToolText(result);
+    assert.equal(payload.pluginDataProtection, "WINDOWS_ACL_UNVERIFIED");
+    assert.equal(
+      fs.statSync(fixture.pluginData).mode & 0o777,
+      before,
+      "the Windows path must not apply POSIX chmod semantics"
+    );
   } finally {
     fixture.cleanup();
   }

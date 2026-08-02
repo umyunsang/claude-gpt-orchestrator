@@ -53,22 +53,22 @@ try {
   });
   const pluginPath = path.join(cgoMarketplace, "plugins", "cgo", ".claude-plugin", "plugin.json");
   const plugin = JSON.parse(fs.readFileSync(pluginPath, "utf8"));
-  writeJson(pluginPath, { ...plugin, version: "0.1.0" });
+  writeJson(pluginPath, { ...plugin, version: "0.2.0" });
 
   run(["plugin", "marketplace", "add", officialMarketplace, "--scope", "user"]);
   run(["plugin", "marketplace", "add", cgoMarketplace, "--scope", "user"]);
   run(["plugin", "install", "cgo@claude-gpt-orchestrator-marketplace", "--scope", "user"]);
-  assert.equal(installedVersion(), "0.1.0");
+  assert.equal(installedVersion(), "0.2.0");
 
-  writeJson(pluginPath, { ...plugin, version: "0.2.0" });
+  writeJson(pluginPath, { ...plugin, version: "0.2.1" });
   run(["plugin", "marketplace", "update", "claude-gpt-orchestrator-marketplace"]);
   run(["plugin", "update", "cgo@claude-gpt-orchestrator-marketplace"]);
-  assert.equal(installedVersion(), "0.2.0");
+  assert.equal(installedVersion(), "0.2.1");
 
   process.stdout.write(JSON.stringify({
     status: "PASS",
-    from: "0.1.0",
-    to: "0.2.0",
+    from: "0.2.0",
+    to: "0.2.1",
     modelCalls: 0
   }) + "\n");
 } finally {

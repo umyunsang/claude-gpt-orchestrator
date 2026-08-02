@@ -136,7 +136,7 @@ Restart Claude Code and run `/cgo:doctor` after updating.
 
 ## Local data and security
 
-CGO uses Claude Code's dedicated plugin-data directory and enforces a current-user-owned, non-symbolic-link root with mode `0700`. Doctor reports the resolved path for the active installation.
+CGO uses Claude Code's dedicated plugin-data directory and rejects symbolic-link or non-directory roots on every platform. On POSIX systems it also enforces current-user ownership and mode `0700`. On Windows, where Node.js cannot represent owner/group/other permissions with POSIX mode bits, CGO leaves the existing Windows ACL unchanged instead of applying a false `0700` check. Doctor reports `WINDOWS_ACL_UNVERIFIED` because CGO does not audit the DACL. Keep Windows plugin data under the default user-profile location; do not point it at a shared or network directory.
 
 Tracked background execution requires the official Codex companion to persist the full specialist prompt and job request locally. Official companion 1.0.6 retains up to the latest 50 jobs and prunes older job files and logs as new state is saved. CGO does not expose a secure purge command. Treat the plugin-data directory as sensitive and include it in local device and backup policies.
 
@@ -147,7 +147,7 @@ CGO does not bundle or manage credentials. The official Codex companion must res
 ## Compatibility and limitations
 
 - CGO records the requested `gpt-5.6-sol` route, but the current official receipt does not attest the effective provider-side model identity. It remains `UNKNOWN_UNTIL_INSTRUMENTED`.
-- Cancellation, automatic resume, automatic orphan repair, and server-enforced cross-call workflow ordering are not available in 0.2.0.
+- Cancellation, automatic resume, automatic orphan repair, and server-enforced cross-call workflow ordering are not available in 0.2.1.
 - A queued or running job whose process no longer exists may be reported as `orphaned`; CGO does not restart or rewrite that job.
 - CGO is compatible with official Codex plugin 1.x releases from 1.0.6, subject to contract verification by `/cgo:doctor`.
 - This repository is a public custom Claude Code marketplace. It is not an Anthropic-managed curated marketplace.

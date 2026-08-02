@@ -11,7 +11,7 @@ test("marketplace and plugin manifests declare the portable dependency boundary"
   assert.equal(marketplace.name, "claude-gpt-orchestrator-marketplace");
   assert.ok(marketplace.allowCrossMarketplaceDependenciesOn.includes("openai-codex"));
   assert.equal(marketplace.plugins[0].source, "./plugins/cgo");
-  assert.equal(marketplace.version, "0.2.0");
+  assert.equal(marketplace.version, "0.2.1");
   assert.equal(marketplace.plugins[0].version, undefined);
 
   const plugin = readJson(
@@ -19,7 +19,7 @@ test("marketplace and plugin manifests declare the portable dependency boundary"
   );
   assert.equal(plugin.name, "cgo");
   assert.equal(plugin.displayName, "Claude GPT Orchestrator (CGO)");
-  assert.equal(plugin.version, "0.2.0");
+  assert.equal(plugin.version, "0.2.1");
   assert.equal(plugin.license, "Apache-2.0");
   assert.deepEqual(plugin.dependencies, [{
     name: "codex",
@@ -30,14 +30,14 @@ test("marketplace and plugin manifests declare the portable dependency boundary"
   assert.ok(fs.existsSync("plugins/cgo/hooks/hooks.json"));
 });
 
-test("all package and runtime version surfaces agree on 0.2.0", () => {
+test("all package and runtime version surfaces agree on 0.2.1", () => {
   const packageJson = readJson("package.json");
   const lock = readJson("package-lock.json");
-  assert.equal(packageJson.version, "0.2.0");
-  assert.equal(lock.version, "0.2.0");
-  assert.equal(lock.packages[""].version, "0.2.0");
-  assert.match(fs.readFileSync("plugins/cgo/server/server.mjs", "utf8"), /version: "0\.2\.0"/);
-  assert.match(fs.readFileSync("plugins/cgo/server/tools.mjs", "utf8"), /version: "0\.2\.0"/);
+  assert.equal(packageJson.version, "0.2.1");
+  assert.equal(lock.version, "0.2.1");
+  assert.equal(lock.packages[""].version, "0.2.1");
+  assert.match(fs.readFileSync("plugins/cgo/server/server.mjs", "utf8"), /version: "0\.2\.1"/);
+  assert.match(fs.readFileSync("plugins/cgo/server/tools.mjs", "utf8"), /version: "0\.2\.1"/);
 });
 
 test("MCP manifest uses plugin path variables and no machine-local paths", () => {

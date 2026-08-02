@@ -121,7 +121,7 @@ function exactObject(value, allowedKeys) {
   return value;
 }
 
-function ensurePrivatePluginData(candidate) {
+function ensurePrivatePluginData(candidate, platform = process.platform) {
   const pluginData = path.resolve(candidate);
   if (fs.existsSync(pluginData)) {
     const existing = fs.lstatSync(pluginData);
@@ -140,17 +140,24 @@ function ensurePrivatePluginData(candidate) {
   if (stat.isSymbolicLink() || !stat.isDirectory()) {
     throw new Error("The CGO plugin data root must be a real directory.");
   }
-  if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
-    throw new Error("The CGO plugin data root must be owned by the current user.");
+  if (platform !== "win32") {
+    if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
+      throw new Error("The CGO plugin data root must be owned by the current user.");
+    }
+    fs.chmodSync(resolved, 0o700);
+    if ((fs.statSync(resolved).mode & 0o777) !== 0o700) {
+      throw new Error("The CGO plugin data root must have mode 0700.");
+    }
   }
-  fs.chmodSync(resolved, 0o700);
-  if ((fs.statSync(resolved).mode & 0o777) !== 0o700) {
-    throw new Error("The CGO plugin data root must have mode 0700.");
-  }
-  return resolved;
+  return {
+    path: resolved,
+    protection: platform === "win32"
+      ? "WINDOWS_ACL_UNVERIFIED"
+      : "POSIX_MODE_0700"
+  };
 }
 
-function resolveRuntime(env) {
+function resolveRuntime(env, platform = process.platform) {
   const projectCandidate = env.CGO_PROJECT_DIR || process.cwd();
   let projectDir;
   try {
@@ -165,9 +172,11 @@ function resolveRuntime(env) {
   const pluginDataCandidate = env.CGO_PLUGIN_DATA ||
     env.CLAUDE_PLUGIN_DATA ||
     path.join(configDir, "plugins", "data", "cgo");
+  const privatePluginData = ensurePrivatePluginData(pluginDataCandidate, platform);
   return {
     projectDir,
-    pluginData: ensurePrivatePluginData(pluginDataCandidate),
+    pluginData: privatePluginData.path,
+    pluginDataProtection: privatePluginData.protection,
     configDir
   };
 }
@@ -215,22 +224,23 @@ function observationPayload(operation, output, requestedJobId = null) {
   };
 }
 
-export function callTool(name, rawArguments, env = process.env) {
+export function callTool(name, rawArguments, env = process.env, runtimeOptions = {}) {
   try {
     const dispatchRequest = name === "dispatch"
       ? validateDispatchRequest(rawArguments)
       : null;
-    const runtime = resolveRuntime(env);
+    const runtime = resolveRuntime(env, runtimeOptions.platform ?? process.platform);
 
     if (name === "doctor") {
       exactObject(rawArguments, []);
       const plugin = inspectOfficialCompanion({ configDir: runtime.configDir });
       return textResult({
         product: "Claude GPT Orchestrator (CGO)",
-        version: "0.2.0",
+        version: "0.2.1",
         node: process.version,
         projectDir: runtime.projectDir,
         pluginData: runtime.pluginData,
+        pluginDataProtection: runtime.pluginDataProtection,
         requestedModel: REQUIRED_MODEL,
         modelCallPerformed: false,
         officialCodexPlugin: plugin
